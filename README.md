@@ -1,30 +1,36 @@
 # Day-Ahead Peak Load Forecasting for the ERCOT Grid
 
-Forecasting tomorrow's peak electricity demand on the Texas grid — and asking what a forecast
-error is actually worth.
+**How well can you predict tomorrow's peak electricity demand in Texas — and what does being wrong
+actually cost?**
 
-**[→ Read the notebook](notebooks/ERCOT_Grid_Load_Forecasting.ipynb)** (renders on GitHub with all
-figures and outputs)
+**[→ Read the notebook](notebooks/ERCOT_Grid_Load_Forecasting.ipynb)** — it renders on GitHub with
+every figure and output already in place.
 
 ---
 
-## The problem
+## Why Texas is a special case
 
-ERCOT runs an electric grid for ~27 million people with only small DC ties to its neighbors. It
-cannot import its way out of a shortfall, so whatever Texas consumes in a second, Texas must
-generate in that second. Operators commit generation *the day before*, because large thermal units
-need hours of notice.
+Most of the US runs on two enormous interconnected grids. If Ohio comes up short on a hot August
+afternoon, power flows in from Michigan and nobody outside a control room finds out.
 
-That makes the day-ahead load forecast a reliability function with asymmetric stakes: commit too
-little and you buy energy in real time at prices capped at **$5,000/MWh** (the ERCOT system-wide
-offer cap since January 1, 2022); commit too much and consumers pay for idle capacity.
+Texas opted out. ERCOT serves about 90% of the state and connects to its neighbors through a
+handful of small DC ties whose combined capacity barely registers against a 60 GW load. For
+practical purposes it's an electrical island: whatever Texas consumes in a second, Texas generates
+in that same second.
 
-**Question:** given everything knowable by mid-afternoon today, how accurately can tomorrow's ERCOT
-peak be predicted — and how much of the remaining error is irreducible?
+That's what turns load forecasting into a reliability function rather than a reporting exercise. A
+large gas plant needs hours of notice, so operators decide *the day before* how much capacity to
+start. Guess low and you're buying in real time during a scarcity event, where ERCOT's offer cap
+has sat at **$5,000/MWh since January 1, 2022**. Guess high and consumers pay for generators that
+spun up for nothing.
 
-## Headline results
+Both mistakes cost money. They don't cost the *same* money — and that asymmetry drives the most
+interesting result in the project.
 
-Walk-forward cross-validation, 9 expanding-window folds, **810 held-out forecast days** (2023–2025).
+## Results
+
+Walk-forward cross-validation, 9 expanding-window folds, **810 held-out forecast days** across
+2023–2025.
 
 | | |
 |---|---|
@@ -32,137 +38,141 @@ Walk-forward cross-validation, 9 expanding-window folds, **810 held-out forecast
 | Peak-season MAE (Jun–Sep) | 2,380 MW |
 | Persistence baseline | 2,761 MW |
 | **Skill vs. persistence** | **24.6% MAE reduction** |
-| Fold-to-fold SD of leader's MAE | 396 MW |
-| Prediction interval coverage (90% target) | **90.1%** via rolling cross-conformal |
+| Fold-to-fold SD of the leader's MAE | 396 MW |
+| Prediction interval coverage (90% target) | **90.1%**, via rolling cross-conformal |
 
 Five models compared — Ridge, SARIMAX, XGBoost, LSTM, and a stacked ensemble — against four
 baselines including persistence, seasonal naive, and a weather+calendar regression.
 
-## What the analysis found
+## What came out of it
 
-**The 65 °F degree-day convention is wrong for ERCOT.** Fitting the balance point from the data
-puts it at **62.0 °F**. Cooling costs **1,317 MW/°F** above it; heating **714 MW/°F** below —
-a cooling-dominated grid where summer degrees carry the reliability risk.
+**The 65 °F degree-day convention is wrong for ERCOT.** That number comes from mid-twentieth-century
+building stock and gets used mostly because everyone else uses it. Fitting the balance point from
+the data puts it at **62.0 °F**. Above it, cooling costs 1,317 MW/°F; below it, heating costs
+714 MW/°F. A cooling-dominated grid, where summer degrees carry the reliability risk.
 
-**"Which model wins" is often not a well-posed question.** The gap between the top two models
-(66 MW) is smaller than the fold-to-fold variation (396 MW). Diebold–Mariano tests with
-Holm correction found **4 of 15 model pairs statistically indistinguishable**. The overall winner
-and the *peak-season* winner are different models — selecting on annual MAE picks the wrong one
-for the days that set reserve margins.
+**"Which model wins" often isn't a well-posed question.** The gap between the top two models is
+66 MW. The fold-to-fold variation is 396 MW. Diebold–Mariano tests with Holm correction found
+**4 of 15 model pairs statistically indistinguishable**. More usefully: the model with the best
+annual MAE and the model with the best *peak-season* MAE are different models — so selecting on the
+annual number picks the wrong one for the days that actually set reserve margins.
 
-**Models systematically under-forecast the highest-load days** by 2,084 MW in the top decile —
-the expensive direction, and exactly where tree models cannot extrapolate a growing trend.
+**Models under-forecast the hardest days.** In the top load decile the bias runs −2,084 MW. That's
+the expensive direction, and it's exactly where tree models hit their extrapolation limit on a
+growing system.
 
-**Accuracy is not value.** With an assumed 9:1 shortfall-to-excess cost ratio, the cost-optimal
-forecast is the 90th percentile, not the mean. Shifting the forecast up by **+3,100 MW** cuts
-expected cost **56%** — with *no* improvement in MAE. The empirical optimum lands within 40 MW of
-the theoretical quantile.
+**Accuracy and value are different objectives.** With a 9:1 shortfall-to-excess cost ratio, the
+cost-optimal forecast is the 90th percentile rather than the mean. Shifting the forecast up by
+**+3,100 MW** cuts expected cost **56%** — with no improvement in MAE whatsoever. The empirical
+optimum lands within 40 MW of the theoretical quantile.
 
-**Perfect weather is doing real work.** Injecting realistic day-ahead temperature forecast error
-(σ = 2 °F) raises MAE ~11%. Any load-forecasting result quoted without stating its weather
-assumption is quoting the σ=0 number.
+**Perfect weather was doing real work.** Inject realistic day-ahead temperature error (σ = 2 °F)
+and MAE rises about 11%. Any load-forecasting result quoted without stating its weather assumption
+is quoting the σ=0 number.
 
-**Solar shows up when the grid needs it; wind does not.** On the top 5% of load days, solar runs at
-**1.55×** its average output while wind runs at 0.98×. The conditions that drive extreme Texas load
-— hot, clear, still — are the same ones that produce strong solar and weak wind.
+**Solar shows up when the grid needs it. Wind mostly doesn't.** On the top 5% of load days, solar
+runs at **1.55×** its average output while wind runs at 0.98×. The conditions that drive extreme
+Texas load — hot, clear, still — are the same ones that produce strong solar and weak wind.
 
-## Method
+## How it's put together
 
-Each modeling decision is earned by a diagnostic that precedes it.
+Each modeling decision is earned by a diagnostic that comes before it.
 
 | § | |
 |---|---|
-| 1–2 | **Data integrity audit** — calendar continuity, physical plausibility screens, target-leakage detection |
+| 1–2 | **Data integrity audit** — calendar continuity, physical plausibility screens, leakage detection |
 | 3 | **The physics** — balance-point estimation, thermal mass, calendar structure, STL, ACF/PACF, weather-normalized growth |
 | 4 | **Feature engineering under a knowability rule**, with an automated leakage assertion |
 | 5–6 | Operationally meaningful metrics, four baselines, expanding-window walk-forward CV |
-| 7 | Five models, each explained in terms of the structure it can and cannot represent |
-| 8 | Results across folds + **Diebold–Mariano** significance testing + error diagnostics by regime |
+| 7 | Five models, each explained by the structure it can and can't represent |
+| 8 | Fold-level results, **Diebold–Mariano** significance testing, error diagnostics by regime |
 | 9 | Sensitivity to **weather-forecast error** |
-| 10 | **Conformal prediction intervals** with measured coverage (three variants) |
+| 10 | **Conformal prediction intervals**, three variants, coverage measured rather than assumed |
 | 11 | **Asymmetric reserve economics** and the cost-optimal forecast quantile |
-| 12 | SHAP attribution, partial dependence, and a sensitivity ladder |
-| 13 | Renewables, net load duration curves, and solar's alignment with peak |
-| 14–15 | Limitations and conclusions |
+| 12 | SHAP, partial dependence, and a sensitivity ladder |
+| 13 | Renewables, net load duration curves, solar's alignment with peak |
+| 14–15 | Limitations, then conclusions |
 
-### Three things this project does that most load-forecasting write-ups skip
+### Three things most load-forecasting write-ups skip
 
-1. **It audits the input file before trusting it.** Physical-plausibility screens compare implied
-   capacity factors and load factors against known bounds. This caught a real defect: an earlier
-   version of the pipeline undercounted the ERCOT fuel mix by ~4×, reporting renewable share at
-   8–10% when the true figure is 31–38%.
+**It audits the input file instead of trusting it.** Physical-plausibility screens check implied
+capacity factors and load factors against known bounds. This caught a real defect: an earlier
+version of the pipeline undercounted the ERCOT fuel mix by roughly 4×, reporting renewable share at
+8–10% when the true figure is 31–38%. Nothing crashed and no chart looked wrong — the shape was
+right and only the level was off, which is precisely why a plot can't catch this class of bug.
 
-2. **It enforces its own leakage rule in code.** §4.4 rebuilds the feature matrix on truncated
-   history and asserts nothing changed. It caught a leak introduced *while writing the notebook* —
-   a full-sample quantile used as a heat-wave threshold. Full-sample statistics used to define a
-   feature are the most common way leakage enters a careful pipeline, because they don't look like
-   lags.
+**It enforces its own leakage rule in code.** §4.4 rebuilds the feature matrix on truncated history
+and asserts nothing changed. It caught a leak introduced *while the notebook was being written* — a
+full-sample quantile used as a heat-wave threshold. Full-sample statistics used to define a feature
+don't look like lags. They look like preprocessing. They leak just the same.
 
-3. **It measures its own optimism.** Replacing same-day renewable generation (unknowable at
-   forecast time) with lagged values costs 361 MW of MAE — 16.4%. That gap is quantified rather
-   than quietly avoided.
+**It measures its own optimism.** Replacing same-day renewable generation (unknowable at forecast
+time) with lagged values costs 361 MW of MAE — 16.4%. That gap gets quantified rather than quietly
+avoided.
 
 ## Data
 
-All sources public. Raw files are gitignored; `scripts/build_dataset.py` rebuilds the processed
-dataset from them.
+All public. Raw files are gitignored; `scripts/build_dataset.py` rebuilds the processed dataset
+from them.
 
-| Source | Contents | Coverage |
+| Source | What it gives | Years |
 |---|---|---|
 | [ERCOT Hourly Load Data Archive](https://www.ercot.com/gridinfo/load/load_hist) | Hourly system load by weather zone | 2022–2025 |
 | [ERCOT Fuel Mix Report](https://www.ercot.com/gridinfo/generation) | 15-minute generation by fuel type | 2022–2025 |
 | [NOAA GHCN-Daily](https://www.ncei.noaa.gov/cdo-web/) `USW00013904` | Austin-Bergstrom Intl. — daily temperature, precipitation, wind | 2022–2025 |
 
-**Unit discipline matters here.** The `IntGenbyFuel` sheets carry 96 fifteen-minute MWh columns
-*and* a `Total` column that is already their daily sum; mixing them up costs a factor of four.
-GHCN ships integer tenths (tenths of °C, tenths of mm, tenths of m/s). `build_dataset.py` writes
-every conversion out explicitly and validates `Total` against the interval columns, allowing the
-one legitimate exception per year — the 25-hour autumn DST day.
+Units are where this data bites. The `IntGenbyFuel` sheets carry 96 fifteen-minute MWh columns
+*and* a `Total` column that's already their daily sum — mix them up and you're off by a factor of
+four. GHCN ships integer tenths (tenths of °C, tenths of mm, tenths of m/s). `build_dataset.py`
+writes every conversion out explicitly and validates `Total` against the interval columns, allowing
+the one legitimate exception per year: the 25-hour autumn DST day, where 96 named columns can't
+hold the repeated hour.
 
 ## Running it
 
 ```bash
 pip install -r requirements.txt
 
-# Place raw files under data/raw/ as described in data/raw/README.md, then:
+# Put raw files under data/raw/ as described in data/raw/README.md, then:
 python scripts/build_dataset.py          # -> data/processed/daily_dataset.csv
 
 jupyter lab notebooks/ERCOT_Grid_Load_Forecasting.ipynb
 ```
 
-Full notebook runtime is roughly 10 minutes on CPU; the LSTM (3 seeds × 9 folds with early
-stopping) is about 6 of that. Set `RUN_CV = False` in §7.6 to skip the cross-validation loop.
+About 10 minutes end to end on CPU. The LSTM (3 seeds × 9 folds with early stopping) is roughly 6
+of that; set `RUN_CV = False` in §7.6 to skip the cross-validation loop.
 
 ## Limitations
 
-Stated plainly, and at greater length in §14 of the notebook:
+Spelled out at greater length in §14 of the notebook:
 
 - **One weather station** for an eight-zone grid. A load-weighted multi-zone temperature is the
   highest-value data upgrade available.
 - **Daily resolution** hides the intra-day problems that matter most — the evening net-load ramp,
-  the migrating peak hour, the duck curve. The source ERCOT files are already hourly.
-- **2022–2025 excludes Winter Storm Uri.** Nothing here characterizes extreme winter tail risk,
-  and the conformal intervals would be badly miscalibrated for such an event.
-- **Cost parameters in §11 are illustrative.** Only the $5,000/MWh offer cap is externally
-  documented; conclusions are drawn from a sensitivity sweep across cost ratios, not a point
+  the migrating peak hour, the duck curve. The source ERCOT files are already hourly, so this is a
+  rebuild rather than new data.
+- **2022–2025 excludes Winter Storm Uri.** Nothing here characterizes extreme winter tail risk, and
+  the conformal intervals would be badly miscalibrated for such an event.
+- **Cost parameters in §11 are assumptions.** Only the $5,000/MWh offer cap is externally
+  documented; the conclusion comes from a sensitivity sweep across cost ratios rather than a point
   estimate.
-- **Conditional coverage is the open problem.** The intervals achieve 90.1% marginal coverage but
-  only 72.2% on the highest-load quintile.
+- **Conditional coverage is the open problem.** The intervals hit 90.1% marginal coverage but only
+  72.2% on the highest-load quintile — under-protected on exactly the days that matter.
 
-## Next steps
+## What I'd do next
 
 1. Rebuild at hourly resolution with load-weighted multi-zone temperature.
-2. Train directly on the pinball loss at the cost-optimal quantile rather than shifting post hoc.
+2. Train directly on the pinball loss at the cost-optimal quantile instead of shifting post hoc.
 3. Extend the record to 2015 to fit an extreme-value model for winter tail risk.
-4. Add humidity (heat index / wet-bulb) — AC load responds to latent as well as sensible heat.
-5. Replace the trend feature with ERCOT interconnection-queue data, which a tree model can use
-   where it cannot extrapolate a time index.
+4. Add humidity — AC load responds to latent as well as sensible heat.
+5. Swap the trend feature for ERCOT interconnection-queue data, which a tree model can use where it
+   can't extrapolate a time index.
 
-## Repository layout
+## Layout
 
 ```
 ├── notebooks/
-│   └── ERCOT_Grid_Load_Forecasting.ipynb   # the analysis, with outputs
+│   └── ERCOT_Grid_Load_Forecasting.ipynb   # the analysis, outputs included
 ├── scripts/
 │   └── build_dataset.py                    # raw sources -> processed daily dataset
 ├── data/
