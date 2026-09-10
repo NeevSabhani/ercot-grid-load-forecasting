@@ -1,0 +1,13 @@
+# Pinned to the versions the notebook was executed with.
+numpy>=1.26
+pandas>=2.1
+matplotlib>=3.8
+scipy>=1.11
+scikit-learn>=1.4
+statsmodels>=0.14
+xgboost>=2.0
+torch>=2.2
+shap>=0.44
+holidays>=0.40
+openpyxl>=3.1          # reading the ERCOT .xlsx sources
+jupyterlab>=4.0

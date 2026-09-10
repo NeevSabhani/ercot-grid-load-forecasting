@@ -1,0 +1,18 @@
+# Raw source data — large, and freely re-downloadable. See data/raw/README.md
+data/raw/*
+!data/raw/README.md
+
+# Build scratch
+nbbuild/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
