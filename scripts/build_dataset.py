@@ -13,7 +13,7 @@ Sources
 2. ERCOT Fuel Mix Report            data/raw/fuelmix/IntGenbyFuelYYYY.xlsx
       One sheet per month. Each row is (Date, Fuel, Settlement Type) with 96
       fifteen-minute columns in MWh plus a 'Total' column that equals their sum,
-      i.e. Total is already daily energy in MWh. No division by 4 is required —
+      i.e. Total is already daily energy in MWh. No division by 4 is required -
       and applying one is the classic way this file gets misread.
 
 3. NOAA GHCN-Daily                  data/raw/weather_USW00013904.csv
@@ -50,7 +50,7 @@ RENEWABLE_FUELS = ["Wind", "Solar"]
 STORAGE_FUELS = ["WSL"]           # storage load: negative when charging
 
 
-# ─────────────────────────────── load ───────────────────────────────
+# ------------------------------- load -------------------------------
 def parse_hour_ending(label) -> pd.Timestamp:
     """'11/06/2022 02:00 DST' -> the calendar date it belongs to.
 
@@ -101,7 +101,7 @@ def load_system_load() -> pd.DataFrame:
     return daily
 
 
-# ───────────────────────────── fuel mix ─────────────────────────────
+# ----------------------------- fuel mix -----------------------------
 def load_fuel_mix() -> pd.DataFrame:
     MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -139,7 +139,7 @@ def load_fuel_mix() -> pd.DataFrame:
                         f"not DST transitions. Do not trust this file blindly.")
                 if bad_dates:
                     print(f"     {sheet}: DST 25-hour day "
-                          f"{pd.Timestamp(bad_dates[0]).date()} — using 'Total' "
+                          f"{pd.Timestamp(bad_dates[0]).date()} - using 'Total' "
                           f"(+{gap.max():,.0f} MWh vs. the 96 named columns)")
             frames.append(df[["Date", "Fuel", "Total"]])
             got += 1
@@ -162,7 +162,7 @@ def load_fuel_mix() -> pd.DataFrame:
     return out
 
 
-# ────────────────────────────── weather ──────────────────────────────
+# ------------------------------ weather ------------------------------
 def load_weather() -> pd.DataFrame:
     path = RAW / "weather_USW00013904.csv"
     w = pd.read_csv(path, low_memory=False, parse_dates=["DATE"])
@@ -192,7 +192,7 @@ def load_weather() -> pd.DataFrame:
     return out
 
 
-# ─────────────────────────────── main ───────────────────────────────
+# ------------------------------- main -------------------------------
 def main() -> pd.DataFrame:
     print("Reading ERCOT system load ...")
     load = load_system_load()
@@ -236,7 +236,7 @@ def main() -> pd.DataFrame:
     print(f"\nWrote {OUT}")
     print(f"  {df.shape[0]:,} days x {df.shape[1]} columns")
     print(f"  {df.index.min().date()} -> {df.index.max().date()}")
-    print(f"\n  peak load      {df['peak_load_mw'].min():>10,.0f} – "
+    print(f"\n  peak load      {df['peak_load_mw'].min():>10,.0f} - "
           f"{df['peak_load_mw'].max():>10,.0f} MW")
     print(f"  wind (avg MW)  {df['wind_mwh'].mean()/24:>10,.0f}")
     print(f"  solar (avg MW) {df['solar_mwh'].mean()/24:>10,.0f}")
